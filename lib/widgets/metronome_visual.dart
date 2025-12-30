@@ -198,21 +198,23 @@ class MeasureBar extends StatelessWidget {
         builder: (context, constraints) {
           final width = constraints.maxWidth - 2 * horizontalPadding;
           final step = width / (beatsPerMeasure + 1) / 2;
-
-          // offsetBeat: currentBeat - 1, o beatsPerMeasure - 1 si currentBeat == 0
-          // final offsetBeat = currentBeat == 0 ? beatsPerMeasure - 1 : currentBeat - 1;
+          final initialOffset = horizontalPadding + step;
+          final compasOffset = provider.compas * width / 2;
+          final beatPosition = initialOffset + currentBeat * step + compasOffset;
 
           return Stack(
             children: [
               AnimatedPositioned(
+                
                 duration: const Duration(milliseconds: 10),
                 curve: Curves.easeOut,
-                left: horizontalPadding + step + currentBeat * step + provider.compas * width / 2,
+                left: beatPosition,
                 top: 0,
                 bottom: 0,
-                child: Container(
-                  width: 10,
-                  color: currentBeat == 0 ? Colors.red : Colors.blue,
+                child: BeatPulse(
+                  isStrongBeat: currentBeat % beatsPerMeasure == 0,
+                  currentBeat: currentBeat,
+                  bpm: provider.settings.bpm,
                 ),
               ),
               SmoothMeasureBar(
@@ -222,6 +224,8 @@ class MeasureBar extends StatelessWidget {
                 bpm: provider.settings.bpm,
                 horizontalPadding: horizontalPadding,
                 compas: provider.compas,
+                step: step,
+                position: beatPosition,
               ),
             ],
           );
@@ -231,6 +235,51 @@ class MeasureBar extends StatelessWidget {
   }
 }
 
+class BeatPulse extends StatelessWidget {
+  final int currentBeat;
+  final bool isStrongBeat;
+  final double size;
+  final int bpm;
+
+  const BeatPulse({
+    super.key,
+    required this.currentBeat,
+    required this.isStrongBeat,
+    required this.bpm,
+    this.size = 18,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final maxScale = isStrongBeat ? 2.0 : 1.3;
+    final color = isStrongBeat ? Colors.red : Colors.blue;
+
+    return AnimatedScale(
+      key: ValueKey(currentBeat), // 👈 reinicia la animación
+      scale: maxScale,
+      duration: Duration(milliseconds: (60000 / bpm / 2).round()),
+      curve: Curves.easeOut,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: maxScale, end: 1.0),
+        duration: Duration(milliseconds: (60000 / bpm / 2).round()),
+        curve: Curves.easeIn,
+        builder: (context, scale, child) {
+          return Transform.scale(scale: scale, child: child);
+        },
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: color,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
 class SmoothMeasureBar extends StatefulWidget {
   final int currentBeat;
   final int beatsPerMeasure;
@@ -238,6 +287,8 @@ class SmoothMeasureBar extends StatefulWidget {
   final int bpm;
   final double horizontalPadding;
   final int compas;
+  final double step;
+  final double position;
 
   const SmoothMeasureBar({
     super.key,
@@ -247,6 +298,8 @@ class SmoothMeasureBar extends StatefulWidget {
     required this.bpm,
     required this.horizontalPadding,
     required this.compas,
+    required this.step,
+    required this.position,
   });
 
   @override
@@ -280,19 +333,13 @@ class _SmoothMeasureBarState extends State<SmoothMeasureBar>
       builder: (context, constraints) {
         final now = DateTime.now();
         final elapsed = now.difference(widget.lastTickTime);
-        final width = constraints.maxWidth - 2 * widget.horizontalPadding;
-        final secondCompasPosition = width / 2 + widget.horizontalPadding;
 
         final progress = (elapsed.inMicroseconds /
                 beatDuration.inMicroseconds)
             .clamp(0.0, 1.0);
 
-        final step =
-            width / widget.beatsPerMeasure / 2;
-
         final position =
-            widget.horizontalPadding + (widget.currentBeat + progress) * step
-            + secondCompasPosition * widget.compas;
+            widget.position + progress * widget.step;
 
         return Transform.translate(
           offset: Offset(position, 0),
