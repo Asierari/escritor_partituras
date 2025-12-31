@@ -1,12 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/metronome_provider.dart';
+import 'providers/recording_provider.dart';
+
 import 'pages/metronome_page.dart';
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => MetronomeProvider()..init(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => MetronomeProvider()..init(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => RecordingProvider()..init(),
+        ),
+      ],
       child: const MyApp(),
     ),
   );
