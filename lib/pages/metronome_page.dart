@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:escritor_partituras/widgets/bpm_selector.dart';
 import 'package:escritor_partituras/widgets/metronome_visual.dart';
 import 'package:escritor_partituras/providers/metronome_provider.dart';
+import 'package:escritor_partituras/providers/recording_provider.dart';
 
 class MetronomePage extends StatefulWidget {
   const MetronomePage({super.key});
@@ -16,6 +17,7 @@ class _MetronomePageState extends State<MetronomePage> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<MetronomeProvider>();
+    final recordingProvider = context.watch<RecordingProvider>();
     final settings = provider.settings;
 
     return Scaffold(
@@ -58,9 +60,17 @@ class _MetronomePageState extends State<MetronomePage> {
             child: FilledButton(
               onPressed: () {
                 if (provider.isPlaying) {
-                  provider.stopMetronome();
+                  recordingProvider.stopRecording(
+                    stopMetronome: () {
+                      provider.stopMetronome();
+                    },
+                  );
                 } else {
-                  provider.startMetronome();
+                  recordingProvider.startRecording(
+                    startMetronome: () {
+                      provider.startMetronome();
+                    },
+                  );
                 }
               },
               child: Icon(provider.isPlaying ? Icons.stop : Icons.play_arrow),
