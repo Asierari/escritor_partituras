@@ -4,6 +4,7 @@ import 'package:escritor_partituras/widgets/bpm_selector.dart';
 import 'package:escritor_partituras/widgets/metronome_visual.dart';
 import 'package:escritor_partituras/providers/metronome_provider.dart';
 import 'package:escritor_partituras/providers/recording_provider.dart';
+import 'package:escritor_partituras/providers/analysis_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class MetronomePage extends StatefulWidget {
@@ -37,7 +38,8 @@ class _MetronomePageState extends State<MetronomePage> {
     final settings = metronomeProvider.settings;
     final isRecording =
     recordingProvider.status == RecordingStatus.recording;
-
+    final analysisProvider = context.read<AnalysisProvider>();
+    
 
     Future<void> onStartRecording() async {
       final granted = await requestMicrophonePermission();
@@ -107,6 +109,10 @@ class _MetronomePageState extends State<MetronomePage> {
                   onPressed: () {
                     if (isRecording) {
                       recordingProvider.stopRecording();
+                      final session = recordingProvider.currentSession;
+                      if (session != null) {
+                        analysisProvider.analyzeRecording(session.filePath);
+                      }
                     } else {
                       onStartRecording();
                     }
@@ -137,7 +143,22 @@ class _MetronomePageState extends State<MetronomePage> {
                   ),
               ],
             ),
-          )
+          ),
+          if (analysisProvider.status == AnalysisStatus.loading)
+            const Text('Analizando audio...'),
+
+          if (analysisProvider.status == AnalysisStatus.ready && analysisProvider.buffer != null)
+            Text(
+              'Samples: ${analysisProvider.buffer!.length}\n'
+              'Duración: ${analysisProvider.buffer!.durationSeconds.toStringAsFixed(2)} s',
+            ),
+
+          if (analysisProvider.status == AnalysisStatus.error)
+            Text(
+              'Error: ${analysisProvider.error}',
+              style: const TextStyle(color: Colors.red),
+            ),
+          const SizedBox(width: 6),
         ],
       ),
     );
