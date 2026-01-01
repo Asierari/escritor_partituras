@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/metronome_provider.dart';
 import 'providers/recording_provider.dart';
+import 'providers/analysis_provider.dart';
 
 import 'pages/metronome_page.dart';
 
@@ -14,6 +15,9 @@ void main() {
         ),
         ChangeNotifierProvider(
           create: (_) => RecordingProvider()..init(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => AnalysisProvider(),
         ),
       ],
       child: const MyApp(),
