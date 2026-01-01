@@ -15,12 +15,21 @@ class MetronomePage extends StatefulWidget {
 
 class _MetronomePageState extends State<MetronomePage> {
 
+ // ---------------- Helpers ----------------
   Future<bool> requestMicrophonePermission() async {
     final status = await Permission.microphone.request();
 
     return status == PermissionStatus.granted;
   }
   
+  String formatDuration(Duration d) {
+    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final tenths = (d.inMilliseconds % 1000 ~/ 100);
+
+    return '$minutes:$seconds.$tenths';
+  }
+
   @override
   Widget build(BuildContext context) {
     final metronomeProvider = context.watch<MetronomeProvider>();
@@ -102,8 +111,30 @@ class _MetronomePageState extends State<MetronomePage> {
                       onStartRecording();
                     }
                   },
-                  child: Icon(isRecording ? Icons.stop : Icons.circle),
+                  child: Icon(isRecording ? Icons.stop : Icons.circle,
+                      color: isRecording ? Colors.black : Colors.red),
                 ),
+                if (isRecording)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.fiber_manual_record,
+                          color: Colors.red,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'REC ${formatDuration(recordingProvider.elapsed)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           )
