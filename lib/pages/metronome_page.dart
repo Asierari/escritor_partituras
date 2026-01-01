@@ -4,6 +4,7 @@ import 'package:escritor_partituras/widgets/bpm_selector.dart';
 import 'package:escritor_partituras/widgets/metronome_visual.dart';
 import 'package:escritor_partituras/providers/metronome_provider.dart';
 import 'package:escritor_partituras/providers/recording_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class MetronomePage extends StatefulWidget {
   const MetronomePage({super.key});
@@ -13,12 +14,36 @@ class MetronomePage extends StatefulWidget {
 }
 
 class _MetronomePageState extends State<MetronomePage> {
+
+  Future<bool> requestMicrophonePermission() async {
+    final status = await Permission.microphone.request();
+
+    return status == PermissionStatus.granted;
+  }
   
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<MetronomeProvider>();
+    final metronomeProvider = context.watch<MetronomeProvider>();
     final recordingProvider = context.watch<RecordingProvider>();
-    final settings = provider.settings;
+    final settings = metronomeProvider.settings;
+    final isRecording =
+    recordingProvider.status == RecordingStatus.recording;
+
+
+    Future<void> onStartRecording() async {
+      final granted = await requestMicrophonePermission();
+
+      if (!granted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Permiso de micrófono denegado'),
+          ),
+        );
+        return;
+      }
+
+      recordingProvider.startRecording();
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -48,7 +73,7 @@ class _MetronomePageState extends State<MetronomePage> {
                   ],
                   onChanged: (String? v) {
                     if (v == null) return;
-                    provider.updateAnimationType(v);
+                    metronomeProvider.updateAnimationType(v);
                   },
                 ),
               ],
@@ -57,23 +82,29 @@ class _MetronomePageState extends State<MetronomePage> {
           // Botón Play/Stop
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: FilledButton(
-              onPressed: () {
-                if (provider.isPlaying) {
-                  recordingProvider.stopRecording(
-                    stopMetronome: () {
-                      provider.stopMetronome();
-                    },
-                  );
-                } else {
-                  recordingProvider.startRecording(
-                    startMetronome: () {
-                      provider.startMetronome();
-                    },
-                  );
-                }
-              },
-              child: Icon(provider.isPlaying ? Icons.stop : Icons.play_arrow),
+            child: Row(
+              children: [
+                FilledButton(
+                  onPressed: () {
+                    if (metronomeProvider.isPlaying) {
+                      metronomeProvider.stopMetronome();
+                    } else {
+                      metronomeProvider.startMetronome();
+                    }
+                  },
+                  child: Icon(metronomeProvider.isPlaying ? Icons.stop : Icons.play_arrow),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    if (isRecording) {
+                      recordingProvider.stopRecording();
+                    } else {
+                      onStartRecording();
+                    }
+                  },
+                  child: Icon(isRecording ? Icons.stop : Icons.circle),
+                ),
+              ],
             ),
           )
         ],

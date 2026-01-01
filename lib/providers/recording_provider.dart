@@ -11,19 +11,25 @@ enum RecordingStatus {
 }
 
 class RecordingProvider extends ChangeNotifier {
+  // Aquí puedes agregar las propiedades y métodos necesarios para la grabación
   RecordingStatus _status = RecordingStatus.idle;
-  RecordingStatus get status => _status;
 
   RecordingSession? _currentSession;
-  RecordingSession? get currentSession => _currentSession;
 
   Duration _elapsed = Duration.zero;
-  Duration get elapsed => _elapsed;
 
   final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
   Timer? _timer;
 
   static const int sampleRate = 44100;
+
+  // ---------------- Getters ----------------
+  RecordingStatus get status => _status;
+  RecordingSession? get currentSession => _currentSession;
+  Duration get elapsed => _elapsed;
+
+  // ---------------- Acciones ----------------
+  // Public methods
 
   Future<void> init() async {
     await _recorder.openRecorder();
@@ -32,14 +38,10 @@ class RecordingProvider extends ChangeNotifier {
     );
   }
 
-  Future<void> startRecording({
-    required VoidCallback startMetronome,
-  }) async {
+  Future<void> startRecording() async {
     if (_status == RecordingStatus.recording) return;
 
     final filePath = await _generateFilePath();
-
-    startMetronome();
 
     await _recorder.startRecorder(
       toFile: filePath,
@@ -63,13 +65,8 @@ class RecordingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-
-  Future<void> stopRecording({
-    required VoidCallback stopMetronome,
-  }) async {
+  Future<void> stopRecording() async {
     if (_status != RecordingStatus.recording) return;
-
-    stopMetronome();
 
     await _recorder.stopRecorder();
     _stopTimer();
@@ -82,6 +79,14 @@ class RecordingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _recorder.closeRecorder();
+    super.dispose();
+  }
+
+  // Private methods
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(
@@ -104,12 +109,7 @@ class RecordingProvider extends ChangeNotifier {
     return '${dir.path}/recording_$timestamp.wav';
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _recorder.closeRecorder();
-    super.dispose();
-  }
+  
 }
 
 
